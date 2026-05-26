@@ -1,0 +1,32 @@
+﻿{
+    "dailyRunTime":  "10:00",
+    "startWithWindows":  false,
+    "keepReports":  false,
+    "lastScheduledRunDate":  "2026-05-25",
+    "sites":  {
+                  "muyuan":  {
+                                 "enabled":  true,
+                                 "manualReminderOnly":  true
+                             },
+                  "newapi-linuxdo":  {
+                                         "enabled":  true,
+                                         "manualReminderOnly":  false
+                                     },
+                  "new-api-abrdns":  {
+                                         "enabled":  true,
+                                         "manualReminderOnly":  false
+                                     },
+                  "huaibao-ai":  {
+                                     "enabled":  true,
+                                     "manualReminderOnly":  false
+                                 },
+                  "elysiver":  {
+                                   "enabled":  true,
+                                   "manualReminderOnly":  false
+                               },
+                  "lpgpt":  {
+                                "enabled":  true,
+                                "manualReminderOnly":  true
+                            }
+              }
+}

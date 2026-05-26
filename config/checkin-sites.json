@@ -1,0 +1,145 @@
+{
+  "linuxDo": {
+    "url": "https://linux.do/",
+    "loginRequiredKeywords": [
+      "登录",
+      "Log In",
+      "Sign In",
+      "Sign in",
+      "创建账户",
+      "Create Account"
+    ],
+    "loggedInKeywords": [
+      "我的草稿",
+      "我的消息",
+      "近期活动",
+      "新建话题",
+      "通知",
+      "个人资料",
+      "Preferences",
+      "Notifications",
+      "Bookmarks"
+    ]
+  },
+  "defaults": {
+    "waitAfterOpenSeconds": 6,
+    "waitAfterClickSeconds": 5,
+    "maxAuthorizationClicks": 3,
+    "popupCloseKeywords": [
+      "关闭公告",
+      "今日关闭",
+      "关闭",
+      "close",
+      "Close"
+    ],
+    "postLoginNavigationKeywords": [
+      "个人设置",
+      "个人中心",
+      "钱包管理",
+      "数据看板",
+      "Dashboard",
+      "Wallet",
+      "Profile"
+    ],
+    "personalSettingsPaths": [
+      "/console/personal"
+    ],
+    "checkinAreaKeywords": [
+      "每日签到",
+      "立即签到",
+      "今日已签到",
+      "累计签到",
+      "本月获得",
+      "累计划获得"
+    ],
+    "buttonKeywords": [
+      "立即签到",
+      "今日签到",
+      "签到",
+      "领取额度",
+      "领取",
+      "免费额度",
+      "今日额度",
+      "Check in",
+      "Check-in",
+      "Claim",
+      "Daily",
+      "Get quota",
+      "Receive"
+    ],
+    "siteLoginKeywords": [
+      "使用 LinuxDO 继续",
+      "使用 Linux.do 登录",
+      "Sign in with Linux.do",
+      "登录",
+      "Log In",
+      "Sign In",
+      "LinuxDO",
+      "Linux.do"
+    ],
+    "successKeywords": [
+      "签到成功",
+      "领取成功",
+      "今日已签到",
+      "已签到",
+      "已领取",
+      "领取成功",
+      "额度已发放",
+      "success",
+      "claimed",
+      "checked in",
+      "already checked"
+    ],
+    "failureKeywords": [
+      "验证码",
+      "人机验证",
+      "登录失败",
+      "授权失败",
+      "未授权",
+      "请先登录",
+      "login required",
+      "captcha",
+      "forbidden",
+      "unauthorized"
+    ],
+    "authorizationKeywords": [
+      "允许",
+      "Allow",
+      "同意",
+      "Authorize",
+      "Approve",
+      "Continue",
+      "授权"
+    ]
+  },
+  "sites": [
+    {
+      "name": "muyuan",
+      "url": "https://muyuan.do",
+      "manualReminderOnly": true,
+      "emailOnFailure": true
+    },
+    {
+      "name": "newapi-linuxdo",
+      "url": "https://newapi.linuxdo.edu.rs"
+    },
+    {
+      "name": "new-api-abrdns",
+      "url": "https://new-api.abrdns.com/"
+    },
+    {
+      "name": "huaibao-ai",
+      "url": "https://ai.huaibao.top/"
+    },
+    {
+      "name": "elysiver",
+      "url": "https://elysiver.h-e.top/"
+    },
+    {
+      "name": "lpgpt",
+      "url": "https://lpgpt.us/",
+      "manualReminderOnly": true,
+      "emailOnFailure": true
+    }
+  ]
+}
