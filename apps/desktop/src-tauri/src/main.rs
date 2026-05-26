@@ -40,7 +40,19 @@ fn repo_root() -> Result<PathBuf, String> {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../..")
         .canonicalize()
+        .map(normalize_windows_verbatim_path)
         .map_err(|error| format!("Could not resolve repository root: {error}"))
+}
+
+fn normalize_windows_verbatim_path(path: PathBuf) -> PathBuf {
+    let text = path.to_string_lossy();
+    if let Some(stripped) = text.strip_prefix(r"\\?\UNC\") {
+        return PathBuf::from(format!(r"\\{stripped}"));
+    }
+    if let Some(stripped) = text.strip_prefix(r"\\?\") {
+        return PathBuf::from(stripped);
+    }
+    path
 }
 
 fn read_repo_file(relative_path: &str) -> Result<String, String> {
@@ -188,6 +200,7 @@ fn clean_reports() -> Result<CleanupResult, String> {
 
     let reports = reports
         .canonicalize()
+        .map(normalize_windows_verbatim_path)
         .map_err(|error| format!("Could not resolve reports dir: {error}"))?;
     if !reports.starts_with(&root) {
         return Err(format!("Refusing to clean reports outside repository: {}", reports.display()));
@@ -280,4 +293,26 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running Check-in Helper");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::normalize_windows_verbatim_path;
+    use std::path::PathBuf;
+
+    #[test]
+    fn strips_windows_verbatim_disk_prefix() {
+        assert_eq!(
+            normalize_windows_verbatim_path(PathBuf::from(r"\\?\G:\CODE\checkinHelper")),
+            PathBuf::from(r"G:\CODE\checkinHelper")
+        );
+    }
+
+    #[test]
+    fn strips_windows_verbatim_unc_prefix() {
+        assert_eq!(
+            normalize_windows_verbatim_path(PathBuf::from(r"\\?\UNC\server\share\repo")),
+            PathBuf::from(r"\\server\share\repo")
+        );
+    }
 }
