@@ -4,6 +4,8 @@ use std::{
     fs,
     path::{Path, PathBuf},
     process::{Command, Output},
+    thread,
+    time::{Duration, Instant},
 };
 use tauri::{
     menu::{Menu, MenuItem},
@@ -68,6 +70,46 @@ fn command_result(output: Output) -> CommandResult {
     }
 }
 
+fn run_command_with_timeout(mut command: Command, timeout: Duration) -> Result<CommandResult, String> {
+    let mut child = command
+        .spawn()
+        .map_err(|error| format!("Could not start command: {error}"))?;
+    let start = Instant::now();
+
+    loop {
+        if let Some(_status) = child
+            .try_wait()
+            .map_err(|error| format!("Could not poll command: {error}"))?
+        {
+            let output = child
+                .wait_with_output()
+                .map_err(|error| format!("Could not collect command output: {error}"))?;
+            return Ok(command_result(output));
+        }
+
+        if start.elapsed() >= timeout {
+            let _ = child.kill();
+            let output = child
+                .wait_with_output()
+                .map_err(|error| format!("Command timed out and output could not be collected: {error}"))?;
+            let mut result = command_result(output);
+            result.exit_code = 124;
+            if result.stderr.trim().is_empty() {
+                result.stderr = format!("Command timed out after {} seconds.", timeout.as_secs());
+            } else {
+                result.stderr = format!(
+                    "{}\nCommand timed out after {} seconds.",
+                    result.stderr.trim_end(),
+                    timeout.as_secs()
+                );
+            }
+            return Ok(result);
+        }
+
+        thread::sleep(Duration::from_millis(250));
+    }
+}
+
 #[tauri::command]
 fn load_config() -> Result<String, String> {
     read_repo_file("config/checkin-sites.json")
@@ -115,30 +157,22 @@ fn run_checkin(keep_reports: bool) -> Result<CommandResult, String> {
         .arg("-ExecutionPolicy")
         .arg("Bypass")
         .arg("-File")
-        .arg(script);
+        .arg(script)
+        .arg("-NoEmail");
 
     if keep_reports {
         command.arg("-KeepReports");
     }
 
-    let output = command
-        .output()
-        .map_err(|error| format!("Could not run check-in script: {error}"))?;
-
-    Ok(command_result(output))
+    run_command_with_timeout(command, Duration::from_secs(600))
 }
 
 #[tauri::command]
 fn open_linuxdo_login() -> Result<CommandResult, String> {
     let root = repo_root()?;
-    let output = Command::new("bb-browser.cmd")
-        .current_dir(&root)
-        .arg("open")
-        .arg("https://linux.do/")
-        .output()
-        .map_err(|error| format!("Could not open Linux.do through bb-browser: {error}"))?;
-
-    Ok(command_result(output))
+    let mut command = Command::new("bb-browser.cmd");
+    command.current_dir(&root).arg("open").arg("https://linux.do/");
+    run_command_with_timeout(command, Duration::from_secs(45))
 }
 
 #[tauri::command]
@@ -175,16 +209,16 @@ fn send_test_email() -> Result<CommandResult, String> {
     fs::write(&result_markdown, "# Tauri test email\n")
         .map_err(|error| format!("Could not write test result markdown: {error}"))?;
 
-    let output = Command::new("python")
+    let mut command = Command::new("python");
+    command
         .current_dir(&root)
         .arg(root.join("scripts/send_reminder_email.py"))
         .arg("--result-json")
-        .arg(&result_json)
-        .output()
-        .map_err(|error| format!("Could not send test email: {error}"))?;
+        .arg(&result_json);
 
+    let result = run_command_with_timeout(command, Duration::from_secs(90));
     let _ = fs::remove_dir_all(&test_root);
-    Ok(command_result(output))
+    result
 }
 
 #[tauri::command]

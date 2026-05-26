@@ -65,7 +65,7 @@ function App() {
     if (runState === "running") return;
     setRunState("running");
     setBusyAction("checkin");
-    setLog("正在调用 legacy check-in engine...");
+    setLog("正在调用 legacy check-in engine... 桌面版会先完成签到，不等待邮件发送。");
     setError("");
     try {
       const result = await invoke<CommandResult>("run_checkin", {
@@ -201,7 +201,7 @@ function App() {
           </article>
           <article className="summary-card">
             <span>邮件提醒</span>
-            <strong>{smtpReady}/{smtpStatus.length || 7} configured</strong>
+            <strong>{smtpReady}/{smtpStatus.length || 7} 已配置</strong>
           </article>
           <article className="summary-card">
             <span>计划任务</span>
@@ -257,7 +257,7 @@ function App() {
             disabled={Boolean(busyAction)}
             onClick={() => void runCommandAction("email", "Sending test email", "send_test_email")}
           >
-            发送测试邮件
+            单独发送测试邮件
           </button>
           <button
             className="ghost-button"
