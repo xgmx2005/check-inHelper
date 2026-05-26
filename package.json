@@ -1,0 +1,22 @@
+{
+  "name": "check-in-helper",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "desktop:dev": "npm --workspace apps/desktop run tauri:dev",
+    "desktop:build": "npm --workspace apps/desktop run tauri:build",
+    "desktop:test": "npm --workspace apps/desktop test",
+    "core:test": "npm --workspace packages/core test",
+    "test": "npm run core:test && npm run desktop:test"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.2.4",
+    "vitest": "^4.0.14"
+  }
+}

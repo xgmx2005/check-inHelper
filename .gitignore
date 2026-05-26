@@ -2,3 +2,7 @@ reports/
 __pycache__/
 *.py[cod]
 *.eml
+node_modules/
+dist/
+target/
+apps/desktop/src-tauri/gen/
