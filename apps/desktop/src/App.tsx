@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
+import { parseTauriJsonPayload } from "./jsonPayload";
 import { buildSiteRows, countConfiguredSmtpVars, countEnabledSites, countManualSites } from "./viewModel";
 import type { CheckinConfig, CommandResult, SmtpVarStatus, TraySettings } from "./viewTypes";
 
@@ -48,12 +49,12 @@ function App() {
         invoke<string>("load_settings"),
         invoke<SmtpVarStatus[]>("get_smtp_status"),
       ]);
-      setConfig(JSON.parse(configText));
-      setSettings(JSON.parse(settingsText));
+      setConfig(parseTauriJsonPayload(configText, emptyConfig));
+      setSettings(parseTauriJsonPayload(settingsText, emptySettings));
       setSmtpStatus(smtp);
       setError("");
     } catch (reason) {
-      setError(String(reason));
+      setError(`配置读取失败：${String(reason)}`);
     }
   }
 
