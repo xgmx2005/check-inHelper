@@ -3,12 +3,12 @@ use std::{
     env,
     fs,
     path::{Path, PathBuf},
-    process::Command,
+    process::{Command, Output},
 };
 use tauri::{
     menu::{Menu, MenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, WindowEvent,
 };
 
 #[derive(Debug, Serialize)]
@@ -23,6 +23,12 @@ struct CommandResult {
     exit_code: i32,
     stdout: String,
     stderr: String,
+}
+
+#[derive(Debug, Serialize)]
+struct CleanupResult {
+    removed_directories: usize,
+    removed_files: usize,
 }
 
 #[derive(Debug, Deserialize)]
@@ -40,6 +46,14 @@ fn repo_root() -> Result<PathBuf, String> {
 fn read_repo_file(relative_path: &str) -> Result<String, String> {
     let path = repo_root()?.join(relative_path);
     fs::read_to_string(&path).map_err(|error| format!("Could not read {}: {error}", path.display()))
+}
+
+fn command_result(output: Output) -> CommandResult {
+    CommandResult {
+        exit_code: output.status.code().unwrap_or(-1),
+        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+    }
 }
 
 #[tauri::command]
@@ -99,10 +113,103 @@ fn run_checkin(keep_reports: bool) -> Result<CommandResult, String> {
         .output()
         .map_err(|error| format!("Could not run check-in script: {error}"))?;
 
-    Ok(CommandResult {
-        exit_code: output.status.code().unwrap_or(-1),
-        stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-        stderr: String::from_utf8_lossy(&output.stderr).to_string(),
+    Ok(command_result(output))
+}
+
+#[tauri::command]
+fn open_linuxdo_login() -> Result<CommandResult, String> {
+    let root = repo_root()?;
+    let output = Command::new("bb-browser.cmd")
+        .current_dir(&root)
+        .arg("open")
+        .arg("https://linux.do/")
+        .output()
+        .map_err(|error| format!("Could not open Linux.do through bb-browser: {error}"))?;
+
+    Ok(command_result(output))
+}
+
+#[tauri::command]
+fn send_test_email() -> Result<CommandResult, String> {
+    let root = repo_root()?;
+    let test_root = root.join("reports").join("tauri-email-test");
+    fs::create_dir_all(&test_root).map_err(|error| format!("Could not create test report dir: {error}"))?;
+    let result_json = test_root.join("result.json");
+    let result_markdown = test_root.join("result.md");
+    let payload = r#"[
+  {
+    "name": "linux.do",
+    "url": "https://linux.do/",
+    "status": "ok",
+    "reason": "Tauri test message.",
+    "finalUrl": "https://linux.do/",
+    "title": "",
+    "screenshot": "",
+    "timestamp": ""
+  },
+  {
+    "name": "muyuan",
+    "url": "https://muyuan.do",
+    "status": "manual_reminder",
+    "reason": "Tauri test manual reminder.",
+    "finalUrl": "https://muyuan.do",
+    "title": "",
+    "screenshot": "",
+    "timestamp": ""
+  }
+]"#;
+
+    fs::write(&result_json, payload).map_err(|error| format!("Could not write test result JSON: {error}"))?;
+    fs::write(&result_markdown, "# Tauri test email\n")
+        .map_err(|error| format!("Could not write test result markdown: {error}"))?;
+
+    let output = Command::new("python")
+        .current_dir(&root)
+        .arg(root.join("scripts/send_reminder_email.py"))
+        .arg("--result-json")
+        .arg(&result_json)
+        .output()
+        .map_err(|error| format!("Could not send test email: {error}"))?;
+
+    let _ = fs::remove_dir_all(&test_root);
+    Ok(command_result(output))
+}
+
+#[tauri::command]
+fn clean_reports() -> Result<CleanupResult, String> {
+    let root = repo_root()?;
+    let reports = root.join("reports");
+    if !reports.exists() {
+        return Ok(CleanupResult {
+            removed_directories: 0,
+            removed_files: 0,
+        });
+    }
+
+    let reports = reports
+        .canonicalize()
+        .map_err(|error| format!("Could not resolve reports dir: {error}"))?;
+    if !reports.starts_with(&root) {
+        return Err(format!("Refusing to clean reports outside repository: {}", reports.display()));
+    }
+
+    let mut removed_directories = 0;
+    let mut removed_files = 0;
+    for entry in fs::read_dir(&reports).map_err(|error| format!("Could not read reports dir: {error}"))? {
+        let entry = entry.map_err(|error| format!("Could not read report entry: {error}"))?;
+        let path = entry.path();
+        if path.is_dir() {
+            fs::remove_dir_all(&path).map_err(|error| format!("Could not remove {}: {error}", path.display()))?;
+            removed_directories += 1;
+        } else if path.is_file() {
+            fs::remove_file(&path).map_err(|error| format!("Could not remove {}: {error}", path.display()))?;
+            removed_files += 1;
+        }
+    }
+
+    Ok(CleanupResult {
+        removed_directories,
+        removed_files,
     })
 }
 
@@ -156,11 +263,20 @@ fn main() {
             load_settings,
             save_settings,
             get_smtp_status,
-            run_checkin
+            run_checkin,
+            open_linuxdo_login,
+            send_test_email,
+            clean_reports
         ])
         .setup(|app| {
             build_tray(app)?;
             Ok(())
+        })
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                api.prevent_close();
+                let _ = window.hide();
+            }
         })
         .run(tauri::generate_context!())
         .expect("error while running Check-in Helper");

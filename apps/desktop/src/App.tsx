@@ -1,9 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useMemo, useState } from "react";
+import { formatCleanupResult, formatCommandResult } from "./actionLog";
 import { parseTauriJsonPayload } from "./jsonPayload";
 import { buildSiteRows, countConfiguredSmtpVars, countEnabledSites, countManualSites } from "./viewModel";
-import type { CheckinConfig, CommandResult, SmtpVarStatus, TraySettings } from "./viewTypes";
+import type { CheckinConfig, CleanupResult, CommandResult, SmtpVarStatus, TraySettings } from "./viewTypes";
 
 const emptyConfig: CheckinConfig = {
   linuxDo: { url: "https://linux.do/" },
@@ -19,6 +20,7 @@ const emptySettings: TraySettings = {
 };
 
 type RunState = "idle" | "running" | "success" | "failed";
+type ActionName = "checkin" | "login" | "email" | "cleanup";
 
 function CatMark() {
   return (
@@ -41,6 +43,7 @@ function App() {
   const [runState, setRunState] = useState<RunState>("idle");
   const [log, setLog] = useState("等待小猫助手巡查。");
   const [error, setError] = useState("");
+  const [busyAction, setBusyAction] = useState<ActionName | null>(null);
 
   async function loadInitialState() {
     try {
@@ -61,6 +64,7 @@ function App() {
   async function runNow() {
     if (runState === "running") return;
     setRunState("running");
+    setBusyAction("checkin");
     setLog("正在调用 legacy check-in engine...");
     setError("");
     try {
@@ -68,10 +72,32 @@ function App() {
         keepReports: settings.keepReports,
       });
       setRunState(result.exit_code === 0 ? "success" : "failed");
-      setLog([result.stdout, result.stderr].filter(Boolean).join("\n\n") || `Exit code: ${result.exit_code}`);
+      setLog(formatCommandResult("Check-in", result));
     } catch (reason) {
       setRunState("failed");
       setError(String(reason));
+    } finally {
+      setBusyAction(null);
+    }
+  }
+
+  async function runCommandAction(action: Exclude<ActionName, "checkin">, label: string, command: string) {
+    if (busyAction) return;
+    setBusyAction(action);
+    setError("");
+    setLog(`${label}...`);
+    try {
+      if (command === "clean_reports") {
+        const result = await invoke<CleanupResult>(command);
+        setLog(formatCleanupResult(result));
+      } else {
+        const result = await invoke<CommandResult>(command);
+        setLog(formatCommandResult(label, result));
+      }
+    } catch (reason) {
+      setError(String(reason));
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -216,6 +242,30 @@ function App() {
               {runState === "running" ? "运行中" : "立即签到"}
             </button>
           </div>
+        </section>
+
+        <section className="quick-actions">
+          <button
+            className="ghost-button"
+            disabled={Boolean(busyAction)}
+            onClick={() => void runCommandAction("login", "Opening Linux.do login", "open_linuxdo_login")}
+          >
+            打开 Linux.do 登录
+          </button>
+          <button
+            className="ghost-button"
+            disabled={Boolean(busyAction)}
+            onClick={() => void runCommandAction("email", "Sending test email", "send_test_email")}
+          >
+            发送测试邮件
+          </button>
+          <button
+            className="ghost-button"
+            disabled={Boolean(busyAction)}
+            onClick={() => void runCommandAction("cleanup", "Cleaning reports", "clean_reports")}
+          >
+            清理临时报告
+          </button>
         </section>
 
         <section className="panel">

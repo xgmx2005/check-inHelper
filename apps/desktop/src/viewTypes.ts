@@ -37,3 +37,8 @@ export type CommandResult = {
   stdout: string;
   stderr: string;
 };
+
+export type CleanupResult = {
+  removed_directories: number;
+  removed_files: number;
+};
