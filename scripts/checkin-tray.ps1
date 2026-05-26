@@ -283,18 +283,28 @@ function New-UiFont {
   New-Object System.Drawing.Font("Microsoft YaHei UI", $Size, $Style)
 }
 
+function New-UiColor {
+  param(
+    [int]$R,
+    [int]$G,
+    [int]$B
+  )
+  [System.Drawing.Color]::FromArgb($R, $G, $B)
+}
+
 function New-CardPanel {
   param(
     [int]$X,
     [int]$Y,
     [int]$Width,
-    [int]$Height
+    [int]$Height,
+    [System.Drawing.Color]$BackColor = (New-UiColor -R 248 -G 249 -B 252)
   )
 
   $panel = New-Object System.Windows.Forms.Panel
   $panel.Location = New-Object System.Drawing.Point($X, $Y)
   $panel.Size = New-Object System.Drawing.Size($Width, $Height)
-  $panel.BackColor = [System.Drawing.Color]::FromArgb(248, 249, 252)
+  $panel.BackColor = $BackColor
   $panel.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
   $panel
 }
@@ -316,6 +326,89 @@ function New-SectionLabel {
   $label
 }
 
+function New-CatMascotLabel {
+  param(
+    [int]$X,
+    [int]$Y,
+    [int]$Width = 260
+  )
+
+  $label = New-Object System.Windows.Forms.Label
+  $label.Text = "小猫助手  ᓚᘏᗢ"
+  $label.Location = New-Object System.Drawing.Point($X, $Y)
+  $label.Size = New-Object System.Drawing.Size($Width, 42)
+  $label.Font = New-UiFont -Size 15 -Style ([System.Drawing.FontStyle]::Bold)
+  $label.ForeColor = New-UiColor -R 62 -G 71 -B 63
+  $label.BackColor = [System.Drawing.Color]::Transparent
+  $label.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
+  $label
+}
+
+function New-StatusSummaryCard {
+  param(
+    [string]$Title,
+    [string]$Value,
+    [string]$Tone,
+    [int]$X,
+    [int]$Y
+  )
+
+  $backColor = if ($Tone -eq "attention") {
+    New-UiColor -R 255 -G 245 -B 239
+  }
+  elseif ($Tone -eq "mail") {
+    New-UiColor -R 241 -G 248 -B 244
+  }
+  else {
+    New-UiColor -R 246 -G 249 -B 247
+  }
+
+  $accentColor = if ($Tone -eq "attention") {
+    New-UiColor -R 206 -G 102 -B 72
+  }
+  elseif ($Tone -eq "mail") {
+    New-UiColor -R 95 -G 137 -B 109
+  }
+  else {
+    New-UiColor -R 103 -G 126 -B 112
+  }
+
+  $card = New-CardPanel -X $X -Y $Y -Width 168 -Height 78 -BackColor $backColor
+
+  $titleLabel = New-Object System.Windows.Forms.Label
+  $titleLabel.Text = $Title
+  $titleLabel.Location = New-Object System.Drawing.Point(18, 12)
+  $titleLabel.Size = New-Object System.Drawing.Size(132, 20)
+  $titleLabel.Font = New-UiFont -Size 8.8
+  $titleLabel.ForeColor = New-UiColor -R 104 -G 108 -B 103
+  $card.Controls.Add($titleLabel)
+
+  $valueLabel = New-Object System.Windows.Forms.Label
+  $valueLabel.Text = $Value
+  $valueLabel.Location = New-Object System.Drawing.Point(18, 34)
+  $valueLabel.Size = New-Object System.Drawing.Size(132, 28)
+  $valueLabel.Font = New-UiFont -Size 13.5 -Style ([System.Drawing.FontStyle]::Bold)
+  $valueLabel.ForeColor = $accentColor
+  $card.Controls.Add($valueLabel)
+
+  $card
+}
+
+function New-PawStatusLabel {
+  param(
+    [string]$Text,
+    [bool]$Attention = $false
+  )
+
+  $label = New-Object System.Windows.Forms.Label
+  # paw-status-marker
+  $label.Text = if ($Attention) { "!  $Text" } else { ".  $Text" }
+  $label.Font = New-UiFont -Size 9.2 -Style ([System.Drawing.FontStyle]::Bold)
+  $label.ForeColor = if ($Attention) { New-UiColor -R 185 -G 88 -B 62 } else { New-UiColor -R 83 -G 124 -B 91 }
+  $label.Size = New-Object System.Drawing.Size(178, 24)
+  $label
+}
+
 function New-SidebarItem {
   param(
     [string]$Text,
@@ -326,19 +419,19 @@ function New-SidebarItem {
   $button = New-Object System.Windows.Forms.Button
   $button.Text = $Text
   $button.Location = New-Object System.Drawing.Point(14, $Y)
-  $button.Size = New-Object System.Drawing.Size(236, 42)
+  $button.Size = New-Object System.Drawing.Size(246, 42)
   $button.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
   $button.FlatAppearance.BorderSize = 0
   $button.TextAlign = [System.Drawing.ContentAlignment]::MiddleLeft
   $button.Font = New-UiFont -Size 10
   $button.Padding = New-Object System.Windows.Forms.Padding(12, 0, 0, 0)
   if ($Active) {
-    $button.BackColor = [System.Drawing.Color]::White
-    $button.ForeColor = [System.Drawing.Color]::FromArgb(26, 32, 44)
+    $button.BackColor = New-UiColor -R 255 -G 255 -B 252
+    $button.ForeColor = New-UiColor -R 39 -G 45 -B 42
   }
   else {
-    $button.BackColor = [System.Drawing.Color]::FromArgb(235, 236, 241)
-    $button.ForeColor = [System.Drawing.Color]::FromArgb(91, 98, 112)
+    $button.BackColor = New-UiColor -R 237 -G 240 -B 235
+    $button.ForeColor = New-UiColor -R 91 -G 98 -B 92
   }
   $button
 }
@@ -545,11 +638,11 @@ function Show-SettingsWindow {
   $config = Get-CheckinConfig
 
   $form = New-Object System.Windows.Forms.Form
-  $form.Text = "bb-browser 签到设置"
+  $form.Text = "Check-in Helper"
   $form.StartPosition = "CenterScreen"
-  $form.Size = New-Object System.Drawing.Size(1120, 760)
-  $form.MinimumSize = New-Object System.Drawing.Size(1040, 700)
-  $form.BackColor = [System.Drawing.Color]::White
+  $form.Size = New-Object System.Drawing.Size(1180, 780)
+  $form.MinimumSize = New-Object System.Drawing.Size(1100, 720)
+  $form.BackColor = New-UiColor -R 250 -G 249 -B 245
   $form.Font = New-UiFont -Size 9.5
   $script:SettingsForm = $form
 
@@ -560,42 +653,62 @@ function Show-SettingsWindow {
   $sidebar.Location = New-Object System.Drawing.Point(0, 0)
   $sidebar.Size = New-Object System.Drawing.Size($sidebarWidth, $form.ClientSize.Height)
   $sidebar.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left
-  $sidebar.BackColor = [System.Drawing.Color]::FromArgb(235, 236, 241)
+  $sidebar.BackColor = New-UiColor -R 237 -G 240 -B 235
   $form.Controls.Add($sidebar)
 
   $brand = New-Object System.Windows.Forms.Label
-  $brand.Text = "公益站签到"
-  $brand.Font = New-UiFont -Size 13 -Style ([System.Drawing.FontStyle]::Bold)
-  $brand.ForeColor = [System.Drawing.Color]::FromArgb(37, 42, 54)
-  $brand.Location = New-Object System.Drawing.Point(20, 20)
-  $brand.Size = New-Object System.Drawing.Size(220, 28)
+  $brand.Text = "Check-in Helper"
+  $brand.Font = New-UiFont -Size 14 -Style ([System.Drawing.FontStyle]::Bold)
+  $brand.ForeColor = New-UiColor -R 38 -G 48 -B 41
+  $brand.Location = New-Object System.Drawing.Point(22, 20)
+  $brand.Size = New-Object System.Drawing.Size(230, 28)
   $sidebar.Controls.Add($brand)
 
   $subBrand = New-Object System.Windows.Forms.Label
-  $subBrand.Text = "bb-browser tray controller"
+  $subBrand.Text = "Linux.do OAuth daily helper"
   $subBrand.Font = New-UiFont -Size 8.5
-  $subBrand.ForeColor = [System.Drawing.Color]::FromArgb(119, 126, 141)
+  $subBrand.ForeColor = New-UiColor -R 105 -G 112 -B 103
   $subBrand.Location = New-Object System.Drawing.Point(22, 50)
-  $subBrand.Size = New-Object System.Drawing.Size(220, 22)
+  $subBrand.Size = New-Object System.Drawing.Size(238, 22)
   $sidebar.Controls.Add($subBrand)
 
-  $sidebar.Controls.Add((New-SidebarItem -Text "⚙  通用" -Y 96 -Active $true))
-  $sidebar.Controls.Add((New-SidebarItem -Text "☑  站点管理" -Y 146))
-  $sidebar.Controls.Add((New-SidebarItem -Text "✉  邮件状态" -Y 196))
-  $sidebar.Controls.Add((New-SidebarItem -Text "🧹  清理策略" -Y 246))
+  $sidebar.Controls.Add((New-CatMascotLabel -X 22 -Y 86 -Width 240))
+  $sidebar.Controls.Add((New-SidebarItem -Text "通用面板" -Y 146 -Active $true))
+  $sidebar.Controls.Add((New-SidebarItem -Text "站点状态" -Y 196))
+  $sidebar.Controls.Add((New-SidebarItem -Text "邮件提醒" -Y 246))
+  $sidebar.Controls.Add((New-SidebarItem -Text "清理策略" -Y 296))
+
+  $catTip = New-CardPanel -X 18 -Y 366 -Width 248 -Height 126 -BackColor (New-UiColor -R 255 -G 252 -B 246)
+  $sidebar.Controls.Add($catTip)
+
+  $catTipTitle = New-Object System.Windows.Forms.Label
+  $catTipTitle.Text = "小猫助手"
+  $catTipTitle.Font = New-UiFont -Size 10.5 -Style ([System.Drawing.FontStyle]::Bold)
+  $catTipTitle.ForeColor = New-UiColor -R 63 -G 72 -B 63
+  $catTipTitle.Location = New-Object System.Drawing.Point(18, 14)
+  $catTipTitle.Size = New-Object System.Drawing.Size(180, 24)
+  $catTip.Controls.Add($catTipTitle)
+
+  $catTipText = New-Object System.Windows.Forms.Label
+  $catTipText.Text = "定时巡查、失败提醒、手动站点轻轻拍你一下。"
+  $catTipText.Font = New-UiFont -Size 9
+  $catTipText.ForeColor = New-UiColor -R 112 -G 116 -B 108
+  $catTipText.Location = New-Object System.Drawing.Point(18, 44)
+  $catTipText.Size = New-Object System.Drawing.Size(206, 52)
+  $catTip.Controls.Add($catTipText)
 
   $doctor = New-Object System.Windows.Forms.Panel
-  $doctor.Location = New-Object System.Drawing.Point(14, 632)
+  $doctor.Location = New-Object System.Drawing.Point(18, 640)
   $doctor.Size = New-Object System.Drawing.Size(252, 48)
   $doctor.Anchor = [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Bottom
-  $doctor.BackColor = [System.Drawing.Color]::FromArgb(226, 228, 234)
+  $doctor.BackColor = New-UiColor -R 226 -G 235 -B 226
   $doctor.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
   $sidebar.Controls.Add($doctor)
 
   $doctorText = New-Object System.Windows.Forms.Label
-  $doctorText.Text = "● Doctor    $($script:LastStatus)"
+  $doctorText.Text = "Doctor    $($script:LastStatus)"
   $doctorText.Font = New-UiFont -Size 9.5 -Style ([System.Drawing.FontStyle]::Bold)
-  $doctorText.ForeColor = [System.Drawing.Color]::FromArgb(84, 91, 105)
+  $doctorText.ForeColor = New-UiColor -R 72 -G 93 -B 73
   $doctorText.Location = New-Object System.Drawing.Point(16, 14)
   $doctorText.Size = New-Object System.Drawing.Size(200, 22)
   $doctor.Controls.Add($doctorText)
@@ -604,27 +717,36 @@ function Show-SettingsWindow {
   $content.Location = New-Object System.Drawing.Point($contentOriginX, 0)
   $content.Size = New-Object System.Drawing.Size(($form.ClientSize.Width - $contentOriginX), $form.ClientSize.Height)
   $content.Anchor = [System.Windows.Forms.AnchorStyles]::Top -bor [System.Windows.Forms.AnchorStyles]::Bottom -bor [System.Windows.Forms.AnchorStyles]::Left -bor [System.Windows.Forms.AnchorStyles]::Right
-  $content.BackColor = [System.Drawing.Color]::White
+  $content.BackColor = New-UiColor -R 250 -G 249 -B 245
   $form.Controls.Add($content)
 
   $title = New-Object System.Windows.Forms.Label
-  $title.Text = "设置"
-  $title.Font = New-UiFont -Size 22 -Style ([System.Drawing.FontStyle]::Bold)
-  $title.Location = New-Object System.Drawing.Point(52, 42)
-  $title.Size = New-Object System.Drawing.Size(240, 44)
+  $title.Text = "今日签到"
+  $title.Font = New-UiFont -Size 24 -Style ([System.Drawing.FontStyle]::Bold)
+  $title.ForeColor = New-UiColor -R 38 -G 45 -B 41
+  $title.Location = New-Object System.Drawing.Point(54, 34)
+  $title.Size = New-Object System.Drawing.Size(220, 44)
   $content.Controls.Add($title)
 
+  $catHeader = New-CatMascotLabel -X 650 -Y 36 -Width 230
+  $content.Controls.Add($catHeader)
+
   $status = New-Object System.Windows.Forms.Label
-  $status.Text = "配置托盘签到工具在桌面上的行为。当前状态：$($script:LastStatus)"
+  $status.Text = "当前状态：$($script:LastStatus)    下一次按计划运行：$($settings.dailyRunTime)"
   $status.Font = New-UiFont -Size 10
-  $status.ForeColor = [System.Drawing.Color]::FromArgb(87, 94, 110)
-  $status.Location = New-Object System.Drawing.Point(56, 86)
-  $status.Size = New-Object System.Drawing.Size(740, 28)
+  $status.ForeColor = New-UiColor -R 93 -G 100 -B 92
+  $status.Location = New-Object System.Drawing.Point(58, 82)
+  $status.Size = New-Object System.Drawing.Size(760, 28)
   $content.Controls.Add($status)
 
-  $content.Controls.Add((New-SectionLabel -Text "外观与计划" -X 58 -Y 138))
+  $content.Controls.Add((New-StatusSummaryCard -Title "站点状态" -Value "全部正常" -Tone "ok" -X 56 -Y 126))
+  $content.Controls.Add((New-StatusSummaryCard -Title "手动提醒" -Value "需要处理" -Tone "attention" -X 238 -Y 126))
+  $content.Controls.Add((New-StatusSummaryCard -Title "邮件提醒" -Value "HTML SMTP" -Tone "mail" -X 420 -Y 126))
+  $content.Controls.Add((New-StatusSummaryCard -Title "计划任务" -Value $settings.dailyRunTime -Tone "ok" -X 602 -Y 126))
 
-  $planCard = New-CardPanel -X 56 -Y 168 -Width 740 -Height 150
+  $content.Controls.Add((New-SectionLabel -Text "计划任务" -X 58 -Y 226))
+
+  $planCard = New-CardPanel -X 56 -Y 256 -Width 790 -Height 122 -BackColor (New-UiColor -R 255 -G 252 -B 247)
   $content.Controls.Add($planCard)
 
   $timeLabel = New-Object System.Windows.Forms.Label
@@ -635,18 +757,27 @@ function Show-SettingsWindow {
   $planCard.Controls.Add($timeLabel)
 
   $timeHelp = New-Object System.Windows.Forms.Label
-  $timeHelp.Text = "托盘工具启动后，到这个时间会自动运行一次。"
-  $timeHelp.ForeColor = [System.Drawing.Color]::FromArgb(105, 112, 126)
+  $timeHelp.Text = "托盘启动后，小猫助手会在这个时间巡查一次。"
+  $timeHelp.ForeColor = New-UiColor -R 105 -G 112 -B 103
   $timeHelp.Location = New-Object System.Drawing.Point(24, 50)
-  $timeHelp.Size = New-Object System.Drawing.Size(360, 24)
+  $timeHelp.Size = New-Object System.Drawing.Size(390, 24)
   $planCard.Controls.Add($timeHelp)
+
+  $yarnLabel = New-Object System.Windows.Forms.Label
+  # yarn-progress-marker
+  $yarnLabel.Text = "毛线球进度  O---- 今日状态已汇总"
+  $yarnLabel.Font = New-UiFont -Size 9
+  $yarnLabel.ForeColor = New-UiColor -R 176 -G 103 -B 75
+  $yarnLabel.Location = New-Object System.Drawing.Point(24, 76)
+  $yarnLabel.Size = New-Object System.Drawing.Size(320, 22)
+  $planCard.Controls.Add($yarnLabel)
 
   $timePicker = New-Object System.Windows.Forms.DateTimePicker
   $timePicker.Format = [System.Windows.Forms.DateTimePickerFormat]::Custom
   $timePicker.CustomFormat = "HH:mm"
   $timePicker.ShowUpDown = $true
   $timePicker.Font = New-UiFont -Size 12
-  $timePicker.Location = New-Object System.Drawing.Point(560, 26)
+  $timePicker.Location = New-Object System.Drawing.Point(600, 24)
   $timePicker.Size = New-Object System.Drawing.Size(132, 30)
   $parsed = [datetime]::ParseExact($settings.dailyRunTime, "HH:mm", $null)
   $timePicker.Value = Get-Date -Hour $parsed.Hour -Minute $parsed.Minute -Second 0
@@ -656,7 +787,7 @@ function Show-SettingsWindow {
   $startupCheck.Text = "开机自启动"
   $startupCheck.Checked = [bool]$settings.startWithWindows
   $startupCheck.Font = New-UiFont -Size 10
-  $startupCheck.Location = New-Object System.Drawing.Point(28, 102)
+  $startupCheck.Location = New-Object System.Drawing.Point(440, 72)
   $startupCheck.Size = New-Object System.Drawing.Size(160, 28)
   $planCard.Controls.Add($startupCheck)
 
@@ -664,7 +795,7 @@ function Show-SettingsWindow {
   $keepReportsCheck.Text = "调试时保留本地报告"
   $keepReportsCheck.Checked = [bool]$settings.keepReports
   $keepReportsCheck.Font = New-UiFont -Size 10
-  $keepReportsCheck.Location = New-Object System.Drawing.Point(226, 102)
+  $keepReportsCheck.Location = New-Object System.Drawing.Point(440, 96)
   $keepReportsCheck.Size = New-Object System.Drawing.Size(220, 28)
   $planCard.Controls.Add($keepReportsCheck)
 
@@ -672,10 +803,10 @@ function Show-SettingsWindow {
   $runButton.Text = "立即签到"
   $runButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
   $runButton.FlatAppearance.BorderSize = 0
-  $runButton.BackColor = [System.Drawing.Color]::FromArgb(218, 112, 78)
+  $runButton.BackColor = New-UiColor -R 205 -G 102 -B 72
   $runButton.ForeColor = [System.Drawing.Color]::White
   $runButton.Font = New-UiFont -Size 10 -Style ([System.Drawing.FontStyle]::Bold)
-  $runButton.Location = New-Object System.Drawing.Point(590, 96)
+  $runButton.Location = New-Object System.Drawing.Point(650, 74)
   $runButton.Size = New-Object System.Drawing.Size(106, 34)
   $runButton.Add_Click({
     if (Confirm-Action -Title "启动签到" -Message "确定现在启动一次签到？结果会通过邮件发送，临时报告会按设置清理。") {
@@ -684,38 +815,51 @@ function Show-SettingsWindow {
   })
   $planCard.Controls.Add($runButton)
 
-  $content.Controls.Add((New-SectionLabel -Text "站点管理" -X 58 -Y 338))
+  $content.Controls.Add((New-SectionLabel -Text "站点状态" -X 58 -Y 398))
 
   $grid = New-Object System.Windows.Forms.DataGridView
-  $grid.Location = New-Object System.Drawing.Point(56, 366)
-  $grid.Size = New-Object System.Drawing.Size(740, 178)
+  $grid.Location = New-Object System.Drawing.Point(56, 426)
+  $grid.Size = New-Object System.Drawing.Size(790, 162)
   $grid.AllowUserToAddRows = $false
   $grid.AllowUserToDeleteRows = $false
   $grid.RowHeadersVisible = $false
   $grid.AutoSizeColumnsMode = [System.Windows.Forms.DataGridViewAutoSizeColumnsMode]::Fill
-  $grid.BackgroundColor = [System.Drawing.Color]::FromArgb(248, 249, 252)
+  $grid.BackgroundColor = New-UiColor -R 255 -G 252 -B 247
   $grid.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-  $grid.GridColor = [System.Drawing.Color]::FromArgb(224, 226, 232)
+  $grid.GridColor = New-UiColor -R 224 -G 228 -B 220
+  $grid.ColumnHeadersDefaultCellStyle.BackColor = New-UiColor -R 237 -G 240 -B 235
+  $grid.ColumnHeadersDefaultCellStyle.ForeColor = New-UiColor -R 55 -G 62 -B 56
+  $grid.ColumnHeadersDefaultCellStyle.Font = New-UiFont -Size 9.2 -Style ([System.Drawing.FontStyle]::Bold)
+  $grid.DefaultCellStyle.BackColor = New-UiColor -R 255 -G 252 -B 247
+  $grid.DefaultCellStyle.ForeColor = New-UiColor -R 45 -G 51 -B 47
+  $grid.DefaultCellStyle.SelectionBackColor = New-UiColor -R 226 -G 235 -B 226
+  $grid.DefaultCellStyle.SelectionForeColor = New-UiColor -R 36 -G 42 -B 38
 
   $nameColumn = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
   $nameColumn.Name = "Name"
-  $nameColumn.HeaderText = "Site"
+  $nameColumn.HeaderText = "站点"
   $nameColumn.ReadOnly = $true
   $grid.Columns.Add($nameColumn) | Out-Null
 
+  $statusColumn = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
+  $statusColumn.Name = "Status"
+  $statusColumn.HeaderText = "今日状态"
+  $statusColumn.ReadOnly = $true
+  $grid.Columns.Add($statusColumn) | Out-Null
+
   $enabledColumn = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
   $enabledColumn.Name = "Enabled"
-  $enabledColumn.HeaderText = "Enabled"
+  $enabledColumn.HeaderText = "启用"
   $grid.Columns.Add($enabledColumn) | Out-Null
 
   $manualColumn = New-Object System.Windows.Forms.DataGridViewCheckBoxColumn
   $manualColumn.Name = "ManualReminderOnly"
-  $manualColumn.HeaderText = "Manual reminder only"
+  $manualColumn.HeaderText = "手动提醒"
   $grid.Columns.Add($manualColumn) | Out-Null
 
   $urlColumn = New-Object System.Windows.Forms.DataGridViewTextBoxColumn
   $urlColumn.Name = "Url"
-  $urlColumn.HeaderText = "URL"
+  $urlColumn.HeaderText = "地址"
   $urlColumn.ReadOnly = $true
   $grid.Columns.Add($urlColumn) | Out-Null
 
@@ -723,15 +867,30 @@ function Show-SettingsWindow {
     $siteSetting = Get-SettingSite -Settings $settings -Name $site.name
     $enabled = if ($siteSetting) { [bool]$siteSetting.enabled } else { $true }
     $manual = if ($siteSetting) { [bool]$siteSetting.manualReminderOnly } else { (($site.PSObject.Properties.Name -contains "manualReminderOnly") -and [bool]$site.manualReminderOnly) }
-    $grid.Rows.Add($site.name, $enabled, $manual, $site.url) | Out-Null
+    $statusText = if ($manual) { "需要处理" } else { "全部正常" }
+    $rowIndex = $grid.Rows.Add($site.name, $statusText, $enabled, $manual, $site.url)
+    if ($manual) {
+      $grid.Rows[$rowIndex].Cells["Status"].Style.ForeColor = New-UiColor -R 185 -G 88 -B 62
+    }
+    else {
+      $grid.Rows[$rowIndex].Cells["Status"].Style.ForeColor = New-UiColor -R 83 -G 124 -B 91
+    }
   }
   $content.Controls.Add($grid)
 
+  $okMarker = New-PawStatusLabel -Text "自动签到站点：全部正常"
+  $okMarker.Location = New-Object System.Drawing.Point(56, 598)
+  $content.Controls.Add($okMarker)
+
+  $attentionMarker = New-PawStatusLabel -Text "手动提醒站点：需要处理" -Attention $true
+  $attentionMarker.Location = New-Object System.Drawing.Point(248, 598)
+  $content.Controls.Add($attentionMarker)
+
   $smtpLabel = New-Object System.Windows.Forms.Label
-  $smtpLabel.Text = "邮件环境"
+  $smtpLabel.Text = "邮件提醒"
   $smtpLabel.Font = New-UiFont -Size 10.5 -Style ([System.Drawing.FontStyle]::Bold)
-  $smtpLabel.ForeColor = [System.Drawing.Color]::FromArgb(88, 94, 107)
-  $smtpLabel.Location = New-Object System.Drawing.Point(58, 562)
+  $smtpLabel.ForeColor = New-UiColor -R 88 -G 94 -B 86
+  $smtpLabel.Location = New-Object System.Drawing.Point(58, 632)
   $smtpLabel.Size = New-Object System.Drawing.Size(200, 24)
   $content.Controls.Add($smtpLabel)
 
@@ -741,30 +900,30 @@ function Show-SettingsWindow {
   $smtpBox.ScrollBars = "Vertical"
   $smtpBox.Text = Get-SmtpStatusText
   $smtpBox.Font = New-UiFont -Size 9
-  $smtpBox.BackColor = [System.Drawing.Color]::FromArgb(248, 249, 252)
+  $smtpBox.BackColor = New-UiColor -R 255 -G 252 -B 247
   $smtpBox.BorderStyle = [System.Windows.Forms.BorderStyle]::FixedSingle
-  $smtpBox.Location = New-Object System.Drawing.Point(56, 590)
-  $smtpBox.Size = New-Object System.Drawing.Size(520, 72)
+  $smtpBox.Location = New-Object System.Drawing.Point(56, 660)
+  $smtpBox.Size = New-Object System.Drawing.Size(520, 70)
   $content.Controls.Add($smtpBox)
 
   $saveButton = New-Object System.Windows.Forms.Button
   $saveButton.Text = "保存"
   $saveButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
   $saveButton.FlatAppearance.BorderSize = 0
-  $saveButton.BackColor = [System.Drawing.Color]::FromArgb(218, 112, 78)
+  $saveButton.BackColor = New-UiColor -R 205 -G 102 -B 72
   $saveButton.ForeColor = [System.Drawing.Color]::White
   $saveButton.Font = New-UiFont -Size 10 -Style ([System.Drawing.FontStyle]::Bold)
-  $saveButton.Location = New-Object System.Drawing.Point(604, 596)
+  $saveButton.Location = New-Object System.Drawing.Point(620, 664)
   $saveButton.Size = New-Object System.Drawing.Size(90, 34)
   $content.Controls.Add($saveButton)
 
   $cancelButton = New-Object System.Windows.Forms.Button
   $cancelButton.Text = "关闭"
   $cancelButton.FlatStyle = [System.Windows.Forms.FlatStyle]::Flat
-  $cancelButton.FlatAppearance.BorderColor = [System.Drawing.Color]::FromArgb(210, 214, 222)
-  $cancelButton.BackColor = [System.Drawing.Color]::White
+  $cancelButton.FlatAppearance.BorderColor = New-UiColor -R 210 -G 214 -B 206
+  $cancelButton.BackColor = New-UiColor -R 255 -G 255 -B 252
   $cancelButton.Font = New-UiFont -Size 10
-  $cancelButton.Location = New-Object System.Drawing.Point(706, 596)
+  $cancelButton.Location = New-Object System.Drawing.Point(722, 664)
   $cancelButton.Size = New-Object System.Drawing.Size(90, 34)
   $cancelButton.Add_Click({ $form.Close() })
   $content.Controls.Add($cancelButton)

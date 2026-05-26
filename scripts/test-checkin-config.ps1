@@ -25,6 +25,9 @@ $config = Get-Content -Path $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
 $scriptText = Get-Content -Path $ScriptPath -Raw -Encoding UTF8
 $immediateCheckin = -join ([char[]](0x7acb, 0x5373, 0x7b7e, 0x5230))
 $quota = -join ([char[]](0x989d, 0x5ea6))
+$smallCatAssistant = -join ([char[]](0x5c0f, 0x732b, 0x52a9, 0x624b))
+$healthyState = -join ([char[]](0x5168, 0x90e8, 0x6b63, 0x5e38))
+$attentionState = -join ([char[]](0x9700, 0x8981, 0x5904, 0x7406))
 
 Assert-True -Condition ($config.defaults.buttonKeywords -contains $immediateCheckin) `
   -Message "buttonKeywords must include the real New API check-in button text"
@@ -116,6 +119,27 @@ Assert-True -Condition ($trayScriptText -match "New-CardPanel") `
 
 Assert-True -Condition ($trayScriptText -match "New-SidebarItem") `
   -Message "settings window must include a left navigation sidebar"
+
+Assert-True -Condition ($trayScriptText -match "New-CatMascotLabel") `
+  -Message "settings window must include a cat mascot helper"
+
+Assert-True -Condition ($trayScriptText -match "New-StatusSummaryCard") `
+  -Message "settings window must include compact status summary cards"
+
+Assert-True -Condition ($trayScriptText -match "yarn-progress-marker") `
+  -Message "settings window must include the yarn-ball progress accent from the design"
+
+Assert-True -Condition ($trayScriptText -match "paw-status-marker") `
+  -Message "settings window must include paw-style status markers"
+
+Assert-True -Condition ($trayScriptText -match "Check-in Helper") `
+  -Message "settings window must use the new Check-in Helper product title"
+
+Assert-True -Condition ($trayScriptText -match [regex]::Escape($smallCatAssistant)) `
+  -Message "settings window must include the small cat assistant copy"
+
+Assert-True -Condition ($trayScriptText -match [regex]::Escape($healthyState) -and $trayScriptText -match [regex]::Escape($attentionState)) `
+  -Message "settings window must surface healthy and attention-needed states"
 
 Assert-True -Condition ($trayScriptText -match "layout-sidebar-width") `
   -Message "settings window must define a stable sidebar width for side-by-side layout"
